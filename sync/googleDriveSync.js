@@ -20,6 +20,52 @@
 
   if (!btn || !menu || !chip) { console.warn('[GDSync] UI not found'); return; }
 
+  // ----- inject minimal CSS to make the control cohesive + polish light mode -----
+  (function injectStyle(){
+    if (document.getElementById('gdsync-style')) return;
+    const s = document.createElement('style');
+    s.id = 'gdsync-style';
+    s.textContent = `
+      /* Group the cloud action into one cohesive pill */
+      #cloudSyncBtn{display:inline-flex;align-items:center;gap:.5rem;background:var(--gds-bg,#fff);border:1px solid var(--gds-b,#e5e7eb);border-radius:.75rem;padding:.25rem .5rem}
+      #cloudSyncBtn:hover{background:var(--gds-bgh,#f9fafb)}
+      .dark #cloudSyncBtn{--gds-bg:#111827;--gds-b:#334155;--gds-bgh:#1f2937}
+      #cloudSyncBtn i{font-size:1rem}
+      #cloudSyncBtn .cloud-label{display:none}
+      /* Dropdown polish */
+      #cloudSyncMenu{background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:.75rem;box-shadow:0 10px 25px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.06);overflow:hidden}
+      .dark #cloudSyncMenu{background:#111827;color:#e5e7eb;border-color:#334155;box-shadow:0 14px 30px rgba(0,0,0,.4)}
+      #cloudSyncMenu .cloud-item{display:flex;align-items:center;gap:.5rem;width:100%;padding:.6rem .85rem;border:0;background:transparent;font-size:.95rem}
+      #cloudSyncMenu .cloud-item:hover{background:#f3f4f6}.dark #cloudSyncMenu .cloud-item:hover{background:#1f2937}
+      /* Status chip */
+      .cloud-chip{display:inline-flex;align-items:center;gap:.375rem;padding:.125rem .5rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+      .cloud-chip-muted{background:#e5e7eb;color:#374151}
+      .cloud-chip-sync{background:#dbeafe;color:#1d4ed8}
+      .cloud-chip-ok{background:#dcfce7;color:#166534}
+      .cloud-chip-off{background:#fee2e2;color:#991b1b}
+      .cloud-chip-err{background:#fde68a;color:#92400e}
+      .dark .cloud-chip-muted{background:#374151;color:#e5e7eb}
+      .dark .cloud-chip-sync{background:#1e3a8a;color:#bfdbfe}
+      .dark .cloud-chip-ok{background:#064e3b;color:#bbf7d0}
+      .dark .cloud-chip-off{background:#7f1d1d;color:#fecaca}
+      .dark .cloud-chip-err{background:#78350f;color:#fde68a}
+      /* Backups list — modern compact */
+      #cloudBackupsPanel{margin-top:.5rem;border-radius:.75rem}
+      .cloud-b-list{max-height:16rem;overflow:auto}
+      .cloud-b-item{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.6rem .85rem}
+      .cloud-b-item + .cloud-b-item{border-top:1px solid #e5e7eb}.dark .cloud-b-item + .cloud-b-item{border-color:#374151}
+      .cloud-b-name{font-weight:600;max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .cloud-b-time{font-size:.75rem;color:#6b7280}.dark .cloud-b-time{color:#9ca3af}
+      .cloud-b-restore{padding:.25rem .5rem;border-radius:.5rem;border:1px solid #e5e7eb;font-size:.75rem;background:transparent;white-space:nowrap}
+      .dark .cloud-b-restore{border-color:#374151}
+      /* Passphrase input — light mode match */
+      #cloudPassphrase{background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:.5rem;padding:.4rem .6rem}
+      #cloudPassphrase::placeholder{color:#6b7280}
+      .dark #cloudPassphrase{background:#0b1220;color:#e5e7eb;border-color:#334155}
+    `;
+    document.head.appendChild(s);
+  })();
+
   // Inline backups panel inside the dropdown
   let backupsPanel = menu.querySelector('#cloudBackupsPanel');
   if (!backupsPanel) {
@@ -47,16 +93,19 @@
     return d;
   })();
 
+  // Chip helpers — now also used for confirmations without toasts
+  let chipTimer = null;
   function setChip(state, text) {
     chip.classList.remove('cloud-chip-muted','cloud-chip-sync','cloud-chip-ok','cloud-chip-off','cloud-chip-err');
     chip.classList.add({
-      muted:'cloud-chip-muted',
-      sync:'cloud-chip-sync',
-      ok:'cloud-chip-ok',
-      off:'cloud-chip-off',
-      err:'cloud-chip-err'
+      muted:'cloud-chip-muted', sync:'cloud-chip-sync', ok:'cloud-chip-ok', off:'cloud-chip-off', err:'cloud-chip-err'
     }[state] || 'cloud-chip-muted');
     chip.textContent = text;
+  }
+  function flashChip(state, text, revertMs=2500, revertTo={state:'ok', text:'Up to date'}) {
+    clearTimeout(chipTimer);
+    setChip(state, text);
+    chipTimer = setTimeout(()=> setChip(revertTo.state, revertTo.text), revertMs);
   }
 
   function updateSignInMenuLabel() {
@@ -297,7 +346,7 @@
   ]);
 
   // ====== Sync core ======
-  async function listBackups(limit=5){
+  async function listBackups(limit=8){
     const { files } = await listAppDataFiles({ q:"name contains 'backup-'", pageSize:limit, orderBy:'modifiedTime desc' });
     return files || [];
   }
@@ -308,25 +357,25 @@
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
-    setChip('ok','Up to date');
+    flashChip('ok','Restored');
   }
 
   async function restoreLatest(){
     setChip('sync','Restoring…');
     const cur = await getFileByName('current.json');
-    if (!cur) { setChip('err','No backup'); return; }
+    if (!cur) { flashChip('err','No backup'); return; }
     const buf  = await downloadFile(cur.id);
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
-    setChip('ok','Up to date');
+    flashChip('ok','Restored');
   }
 
   async function syncNow(){
     if (isSyncing) return;
 
     // Respect rule: do not sync when there are no deliveries
-    if (!shouldSync()) { setChip('ok','Up to date'); return; }
+    if (!shouldSync()) { flashChip('muted','Nothing to sync'); return; }
 
     isSyncing = true; setChip('sync','Syncing…');
     try{
@@ -354,9 +403,9 @@
             if (cancelBtn) cancelBtn.onclick = () => resolve(false);
           } else { resolve(confirm('Conflict: OK=Local, Cancel=Cloud')); }
         });
-        if (!chooseLocal) { await restoreLatest(); isSyncing=false; setChip('ok','Up to date'); return; }
+        if (!chooseLocal) { await restoreLatest(); isSyncing=false; return; }
       } else if (dtR && dtR > dtL) {
-        await restoreLatest(); isSyncing=false; setChip('ok','Up to date'); return;
+        await restoreLatest(); isSyncing=false; return;
       }
 
       // Upload current + rolling backup (keep last 5)
@@ -373,11 +422,11 @@
         await Promise.allSettled(extra.map(f => deleteFile(f.id)));
       } catch {}
 
-      setChip('ok','Up to date');
+      flashChip('ok','Synced');
       queued=false;
     } catch(e){
-      if (navigator.onLine === false) { setChip('off','Offline'); queued=true; }
-      else { setChip('err','Error'); }
+      if (navigator.onLine === false) { queued=true; flashChip('off','Offline'); }
+      else { flashChip('err','Error'); }
     } finally {
       isSyncing=false;
     }
@@ -424,7 +473,7 @@
         backupsPanel.classList.remove('hidden');
         backupsPanel.innerHTML = `
           <div class="px-2 py-1 text-xs text-neutral-500 dark:text-neutral-400">Backups</div>
-          <div id="cloudBackupsList" class="cloud-b-list divide-y divide-neutral-200 dark:divide-neutral-700"></div>
+          <div id="cloudBackupsList" class="cloud-b-list"></div>
         `;
         const listEl = backupsPanel.querySelector('#cloudBackupsList');
         listEl.innerHTML = '<div class="p-2 text-sm">Loading…</div>';
@@ -461,14 +510,15 @@
         showMenu(false);
         return;
       }
-    } catch (err) {
-      setChip('err','Error');
+    } catch {
+      flashChip('err','Error');
     }
   });
 
-  // ====== network events ======
+  // ====== network/tab events ======
   window.addEventListener('online', ()=>{ if (queued && shouldSync()) syncNow().catch(()=>{}); });
-  // IMPORTANT: do not sync on tab change; focus handler intentionally omitted.
+  // Focus-sync is back (as requested)
+  window.addEventListener('focus',  ()=>{ if (shouldSync()) syncNow().catch(()=>{}); });
 
   // ====== expose API (optional) ======
   window.GDSync = { signIn:()=>ensureToken(true), signOut: revokeToken, isSignedIn:()=>!!accessToken, syncNow, restoreLatest, listBackups };
@@ -481,11 +531,8 @@
       else setChip('muted','Needs sign-in');
     } catch { setChip('muted','Needs sign-in'); }
     refreshMenuState();
-    // Initial sync only if there are deliveries (and no distracting toasts)
-    if (shouldSync()) { /* no auto upload on boot; user/data changes trigger */ }
-    try {
-      if (!localStorage.getItem(FIRSTLOAD)) { /* intentionally no toast */ localStorage.setItem(FIRSTLOAD,'1'); }
-    } catch {}
+    // No distracting toasts on first load. We keep the chip quiet unless you act.
+    try { if (!localStorage.getItem(FIRSTLOAD)) localStorage.setItem(FIRSTLOAD,'1'); } catch {}
   })();
 
 })();
