@@ -232,22 +232,45 @@
   }
   async function deleteFile(fileId){ await driveFetch(`/drive/v3/files/${fileId}`, {method:'DELETE'}); }
 
-  // ====== Snapshot ======
-  function collectLocalSnapshot(){
+// ====== Snapshot ======
+function collectLocalSnapshot() {
     const data = {};
-    for (let i=0;i<localStorage.length;i++){
-      const k = localStorage.key(i); if (!k) continue;
-      if (k.startsWith('gdsync.')) continue; // skip internal
-      data[k] = localStorage.getItem(k);
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i); if (!k) continue;
+        if (k.startsWith('gdsync.')) continue; // skip internal
+        data[k] = localStorage.getItem(k);
     }
-    return { meta:{ updatedAt: Date.now(), deviceId, version:1 }, data:{ localStorage: data } };
-  }
-  function applyLocalSnapshot(snap){
+    return { meta: { updatedAt: Date.now(), deviceId, version: 1 }, data: { localStorage: data } };
+}
+function applyLocalSnapshot(snap) {
     if (!snap?.data?.localStorage) throw new Error('Invalid snapshot');
     const map = snap.data.localStorage;
-    for (const [k,v] of Object.entries(map)) localStorage.setItem(k, v);
-    try { if (typeof render==='function') render(); } catch {}
-  }
+
+    // 1) Write all keys from the snapshot back into localStorage
+    for (const [k, v] of Object.entries(map)) localStorage.setItem(k, v);
+
+    // 2) Reload in-memory state & refresh all dependent UI (only if host exposes these)
+    try {
+        // deliveries + transactions + badges
+        if (typeof load === 'function') load();
+        if (typeof loadTransactions === 'function') loadTransactions();
+        if (typeof loadBadgeMap === 'function') loadBadgeMap();
+
+        // purchases (functions return arrays; assign to globals when available)
+        if (typeof loadPurchases === 'function') { window.purchases = loadPurchases(); }
+        if (typeof loadPurchaseItems === 'function') { window.purchaseItems = loadPurchaseItems(); }
+        if (typeof populatePurchaseOptions === 'function') populatePurchaseOptions();
+        if (typeof renderPurchases === 'function') renderPurchases();
+
+        // calculator + preview + any shop dropdown
+        if (typeof updateCalculatorDefaults === 'function') updateCalculatorDefaults();
+        if (typeof updatePreview === 'function') updatePreview();
+        if (typeof populateShopDropdown === 'function') populateShopDropdown?.();
+
+        // final full render
+        if (typeof render === 'function') render();
+    } catch { /* never break restore if a UI hook is missing */ }
+}
 
   // ====== Sync core ======
   async function listBackups(limit=5){
