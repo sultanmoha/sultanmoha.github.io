@@ -25,7 +25,7 @@
   if (!backupsPanel) {
     backupsPanel = document.createElement('div');
     backupsPanel.id = 'cloudBackupsPanel';
-    backupsPanel.className = 'mt-2 rounded-md border border-neutral-200 dark:border-neutral-700 hidden';
+    backupsPanel.className = 'mt-2 rounded-lg border border-neutral-200 dark:border-neutral-700 hidden';
     backupsPanel.setAttribute('role','group');
     menu.appendChild(backupsPanel);
   }
@@ -36,7 +36,6 @@
   let tokenClient   = null;
   let isSyncing     = false;
   let queued        = false;
-  let backoffMs     = 0;
 
   // ====== UTIL ======
   const enc = new TextEncoder();
@@ -51,7 +50,11 @@
   function setChip(state, text) {
     chip.classList.remove('cloud-chip-muted','cloud-chip-sync','cloud-chip-ok','cloud-chip-off','cloud-chip-err');
     chip.classList.add({
-      muted:'cloud-chip-muted', sync:'cloud-chip-sync', ok:'cloud-chip-ok', off:'cloud-chip-off', err:'cloud-chip-err'
+      muted:'cloud-chip-muted',
+      sync:'cloud-chip-sync',
+      ok:'cloud-chip-ok',
+      off:'cloud-chip-off',
+      err:'cloud-chip-err'
     }[state] || 'cloud-chip-muted');
     chip.textContent = text;
   }
@@ -156,7 +159,7 @@
     accessToken   = token.access_token;
     tokenExpireAt = now() + (token.expires_in ? token.expires_in*1000 : 3600*1000);
     try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify({accessToken, tokenExpireAt})); } catch {}
-    setChip('ok','Signed in');
+    setChip('ok','Signed');
     refreshMenuState();
     return accessToken;
   }
@@ -282,6 +285,17 @@
     } catch { return false; }
   }
 
+  // Keys that represent data mutations worth syncing (ignore view state like tab switches)
+  const SYNC_KEYS = new Set([
+    'bakery-tracker-rows',
+    'bakery-tracker-transactions',
+    'bakery-purchases',
+    'bakery-tracker-saves',
+    'bakery-purchase-saves',
+    'bakery-calculator-saves',
+    'bakery-badge-map'
+  ]);
+
   // ====== Sync core ======
   async function listBackups(limit=5){
     const { files } = await listAppDataFiles({ q:"name contains 'backup-'", pageSize:limit, orderBy:'modifiedTime desc' });
@@ -294,18 +308,18 @@
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
-    setChip('ok','Up to date'); showToast?.('Restored from selected backup','success');
+    setChip('ok','Up to date');
   }
 
   async function restoreLatest(){
     setChip('sync','Restoring…');
     const cur = await getFileByName('current.json');
-    if (!cur) { setChip('err','Error'); showToast?.('No cloud backup found','error'); return; }
+    if (!cur) { setChip('err','No backup'); return; }
     const buf  = await downloadFile(cur.id);
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
-    setChip('ok','Up to date'); showToast?.('Restored from cloud','success');
+    setChip('ok','Up to date');
   }
 
   async function syncNow(){
@@ -359,11 +373,11 @@
         await Promise.allSettled(extra.map(f => deleteFile(f.id)));
       } catch {}
 
-      setChip('ok','Up to date'); showToast?.('Synced','success');
-      queued=false; backoffMs=0;
+      setChip('ok','Up to date');
+      queued=false;
     } catch(e){
-      if (navigator.onLine === false) { setChip('off','Offline'); queued=true; showToast?.('Offline - will upload when back online','warning'); }
-      else { setChip('err','Error'); backoffMs=Math.min(backoffMs?backoffMs*2:1000,30000); showToast?.(e.message||'Sync failed','error'); }
+      if (navigator.onLine === false) { setChip('off','Offline'); queued=true; }
+      else { setChip('err','Error'); }
     } finally {
       isSyncing=false;
     }
@@ -371,18 +385,19 @@
 
   // ====== Auto-sync hooks ======
   let debounceTimer=null;
-  function scheduleAutosync(){
+  function scheduleAutosync(changedKey){
     if (queued) return;
     if (!shouldSync()) return;          // gate on deliveries
+    if (changedKey && !SYNC_KEYS.has(changedKey)) return; // ignore UI-only keys (like tab switches)
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(()=>{ syncNow().catch(()=>{}); }, 5000);
   }
   (function patchLocalStorage(){
     const s = window.localStorage; if (!s) return;
     const _set=s.setItem.bind(s), _rem=s.removeItem.bind(s), _clr=s.clear?.bind(s)||(()=>{});
-    s.setItem=function(k,v){ _set(k,v); scheduleAutosync(); };
-    s.removeItem=function(k){ _rem(k); scheduleAutosync(); };
-    s.clear=function(){ _clr(); scheduleAutosync(); };
+    s.setItem=function(k,v){ _set(k,v); scheduleAutosync(k); };
+    s.removeItem=function(k){ _rem(k); scheduleAutosync(k); };
+    s.clear=function(){ _clr(); scheduleAutosync(null); };
   })();
 
   // ====== UI wiring ======
@@ -408,13 +423,13 @@
         // Inline list (keep menu OPEN)
         backupsPanel.classList.remove('hidden');
         backupsPanel.innerHTML = `
-          <div class="px-2 py-1 text-xs text-neutral-500 dark:text-neutral-400">Backups (latest first)</div>
+          <div class="px-2 py-1 text-xs text-neutral-500 dark:text-neutral-400">Backups</div>
           <div id="cloudBackupsList" class="cloud-b-list divide-y divide-neutral-200 dark:divide-neutral-700"></div>
         `;
         const listEl = backupsPanel.querySelector('#cloudBackupsList');
         listEl.innerHTML = '<div class="p-2 text-sm">Loading…</div>';
         try {
-          const list = await listBackups(5);
+          const list = await listBackups(8);
           if (!list.length) {
             listEl.innerHTML = '<div class="p-2 text-sm text-neutral-500">No backups found</div>';
           } else {
@@ -447,13 +462,13 @@
         return;
       }
     } catch (err) {
-      showToast?.(err.message || 'Action failed', 'error');
+      setChip('err','Error');
     }
   });
 
   // ====== network events ======
   window.addEventListener('online', ()=>{ if (queued && shouldSync()) syncNow().catch(()=>{}); });
-  window.addEventListener('focus',  ()=>{ if (shouldSync())          syncNow().catch(()=>{}); });
+  // IMPORTANT: do not sync on tab change; focus handler intentionally omitted.
 
   // ====== expose API (optional) ======
   window.GDSync = { signIn:()=>ensureToken(true), signOut: revokeToken, isSignedIn:()=>!!accessToken, syncNow, restoreLatest, listBackups };
@@ -462,14 +477,14 @@
   (function boot(){
     try {
       const cached = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
-      if (cached?.accessToken) { accessToken=cached.accessToken; tokenExpireAt=cached.tokenExpireAt||0; setChip('ok','Signed in'); }
+      if (cached?.accessToken) { accessToken=cached.accessToken; tokenExpireAt=cached.tokenExpireAt||0; setChip('ok','Signed'); }
       else setChip('muted','Needs sign-in');
     } catch { setChip('muted','Needs sign-in'); }
     refreshMenuState();
-    // Initial sync only if there are deliveries
-    if (shouldSync()) { syncNow().catch(()=>{}); }
+    // Initial sync only if there are deliveries (and no distracting toasts)
+    if (shouldSync()) { /* no auto upload on boot; user/data changes trigger */ }
     try {
-      if (!localStorage.getItem(FIRSTLOAD)) { showToast?.('Sign in to enable automatic backups.','warning'); localStorage.setItem(FIRSTLOAD,'1'); }
+      if (!localStorage.getItem(FIRSTLOAD)) { /* intentionally no toast */ localStorage.setItem(FIRSTLOAD,'1'); }
     } catch {}
   })();
 
