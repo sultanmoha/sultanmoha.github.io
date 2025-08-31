@@ -4,7 +4,7 @@
 
     // ====== CONFIG ======
     const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-    const CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID'; // ← replace with your Web client ID
+    const CLIENT_ID = '4853441079-chf1qiv8a06pfjk6a2c1b6eq4uosi765.apps.googleusercontent.com'; // ← replace with your Web client ID
 
     // internal storage (never uploaded)
     const TOKEN_KEY = 'gdsync.token';
