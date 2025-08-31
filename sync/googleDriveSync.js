@@ -6,7 +6,7 @@
   const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
   const CLIENT_ID   = '4853441079-chf1qiv8a06pfjk6a2c1b6eq4uosi765.apps.googleusercontent.com'; // ← replace with your Web client ID
 
-  // internal storage (never uploaded)
+  // Internal storage (never uploaded)
   const TOKEN_KEY   = 'gdsync.token';
   const DEVICE_KEY  = 'gdsync.deviceId';
   const FIRSTLOAD   = 'gdsync.toastShown';
@@ -20,7 +20,7 @@
 
   if (!btn || !menu || !chip) { console.warn('[GDSync] UI not found'); return; }
 
-  // dynamic “backups” panel lives inside the menu
+  // Inline backups panel inside the dropdown
   let backupsPanel = menu.querySelector('#cloudBackupsPanel');
   if (!backupsPanel) {
     backupsPanel = document.createElement('div');
@@ -75,17 +75,14 @@
   function refreshMenuState() {
     const signedIn = !!accessToken;
     const q = (a) => menu.querySelector(`.cloud-item[data-action="${a}"]`);
-    const setDis = (el, dis) => { if (el) { el.disabled = dis; el.classList.toggle('opacity-50', !!dis); el.setAttribute('aria-disabled', dis ? 'true':'false'); } };
+    const setDis = (el, dis) => { if (el) { el.disabled = dis; el.classList.toggle('opacity-50', !!dis); el.setAttribute('aria-disabled', dis ? 'true' : 'false'); } };
 
-    // Sign-in label becomes “Signed” when authenticated
     updateSignInMenuLabel();
-
     setDis(q('signout'), !signedIn);
     setDis(q('sync'),    !signedIn);
     setDis(q('restore'), !signedIn);
     setDis(q('view'),    !signedIn);
 
-    // hide backups panel when signed out
     if (!signedIn) backupsPanel.classList.add('hidden');
   }
 
@@ -98,7 +95,7 @@
     } else {
       menu.classList.add('hidden');
       btn.setAttribute('aria-expanded','false');
-      backupsPanel.classList.add('hidden'); // collapse panel when closing
+      backupsPanel.classList.add('hidden');
     }
     refreshMenuState();
   }
@@ -141,7 +138,7 @@
   }
   async function ensureToken(interactive=false){
     if (navigator.onLine === false) { setChip('off','Offline'); queued=true; throw new Error('Offline'); }
-    if (accessToken && tokenExpireAt - now() > 5*60*1000) return accessToken; // reuse if >5m left
+    if (accessToken && tokenExpireAt - now() > 5*60*1000) return accessToken;
 
     await loadGIS();
     if (!tokenClient) {
@@ -232,45 +229,58 @@
   }
   async function deleteFile(fileId){ await driveFetch(`/drive/v3/files/${fileId}`, {method:'DELETE'}); }
 
-// ====== Snapshot ======
-function collectLocalSnapshot() {
+  // ====== Snapshot ======
+  function collectLocalSnapshot(){
     const data = {};
-    for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i); if (!k) continue;
-        if (k.startsWith('gdsync.')) continue; // skip internal
-        data[k] = localStorage.getItem(k);
+    for (let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i); if (!k) continue;
+      if (k.startsWith('gdsync.')) continue; // skip internal
+      data[k] = localStorage.getItem(k);
     }
-    return { meta: { updatedAt: Date.now(), deviceId, version: 1 }, data: { localStorage: data } };
-}
-function applyLocalSnapshot(snap) {
+    return { meta:{ updatedAt: Date.now(), deviceId, version:1 }, data:{ localStorage: data } };
+  }
+
+  function applyLocalSnapshot(snap){
     if (!snap?.data?.localStorage) throw new Error('Invalid snapshot');
     const map = snap.data.localStorage;
 
-    // 1) Write all keys from the snapshot back into localStorage
-    for (const [k, v] of Object.entries(map)) localStorage.setItem(k, v);
+    // Write snapshot to localStorage
+    for (const [k,v] of Object.entries(map)) localStorage.setItem(k, v);
 
-    // 2) Reload in-memory state & refresh all dependent UI (only if host exposes these)
+    // Reload in-memory state & UI (mirror app boot / import)
     try {
-        // deliveries + transactions + badges
-        if (typeof load === 'function') load();
-        if (typeof loadTransactions === 'function') loadTransactions();
-        if (typeof loadBadgeMap === 'function') loadBadgeMap();
+      if (typeof load === 'function') load();
+      if (typeof loadTransactions === 'function') loadTransactions();
+      if (typeof loadBadgeMap === 'function') loadBadgeMap();
 
-        // purchases (functions return arrays; assign to globals when available)
-        if (typeof loadPurchases === 'function') { window.purchases = loadPurchases(); }
-        if (typeof loadPurchaseItems === 'function') { window.purchaseItems = loadPurchaseItems(); }
-        if (typeof populatePurchaseOptions === 'function') populatePurchaseOptions();
-        if (typeof renderPurchases === 'function') renderPurchases();
+      if (typeof loadPurchases === 'function')      { window.purchases      = loadPurchases(); }
+      if (typeof loadPurchaseItems === 'function')  { window.purchaseItems  = loadPurchaseItems(); }
+      if (typeof populatePurchaseOptions === 'function') populatePurchaseOptions();
+      if (typeof renderPurchases === 'function')    renderPurchases();
 
-        // calculator + preview + any shop dropdown
-        if (typeof updateCalculatorDefaults === 'function') updateCalculatorDefaults();
-        if (typeof updatePreview === 'function') updatePreview();
-        if (typeof populateShopDropdown === 'function') populateShopDropdown?.();
+      // Saves panels (deliveries / purchases / calculator)
+      if (typeof loadSaves === 'function') loadSaves();
+      if (typeof populateSavePanel === 'function') populateSavePanel();
+      if (typeof loadPurchaseSaves === 'function') loadPurchaseSaves();
+      if (typeof populatePurchaseSavePanel === 'function') populatePurchaseSavePanel();
+      if (typeof loadCalcSaves === 'function') loadCalcSaves();
+      if (typeof populateCalcSavesSection === 'function') populateCalcSavesSection();
 
-        // final full render
-        if (typeof render === 'function') render();
-    } catch { /* never break restore if a UI hook is missing */ }
-}
+      if (typeof updateCalculatorDefaults === 'function') updateCalculatorDefaults();
+      if (typeof updatePreview === 'function') updatePreview();
+      if (typeof populateShopDropdown === 'function') populateShopDropdown();
+
+      if (typeof render === 'function') render();
+    } catch { /* never break restore if a hook is missing */ }
+  }
+
+  // ====== Only sync when Deliveries table has items ======
+  function shouldSync() {
+    try {
+      const rows = JSON.parse(localStorage.getItem('bakery-tracker-rows') || '[]');
+      return Array.isArray(rows) && rows.length > 0;
+    } catch { return false; }
+  }
 
   // ====== Sync core ======
   async function listBackups(limit=5){
@@ -280,7 +290,7 @@ function applyLocalSnapshot(snap) {
 
   async function restoreBackup(fileId) {
     setChip('sync','Restoring…');
-    const buf = await downloadFile(fileId);
+    const buf  = await downloadFile(fileId);
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
@@ -291,7 +301,7 @@ function applyLocalSnapshot(snap) {
     setChip('sync','Restoring…');
     const cur = await getFileByName('current.json');
     if (!cur) { setChip('err','Error'); showToast?.('No cloud backup found','error'); return; }
-    const buf = await downloadFile(cur.id);
+    const buf  = await downloadFile(cur.id);
     const json = await maybeDecrypt(buf, passI?.value || '');
     const snap = JSON.parse(json);
     applyLocalSnapshot(snap);
@@ -300,10 +310,15 @@ function applyLocalSnapshot(snap) {
 
   async function syncNow(){
     if (isSyncing) return;
+
+    // Respect rule: do not sync when there are no deliveries
+    if (!shouldSync()) { setChip('ok','Up to date'); return; }
+
     isSyncing = true; setChip('sync','Syncing…');
     try{
       await ensureToken(false);
-      // read remote meta if present
+
+      // Compare with remote meta (if exists)
       let remoteMeta=null;
       try{
         const cur = await getFileByName('current.json');
@@ -313,6 +328,7 @@ function applyLocalSnapshot(snap) {
           remoteMeta = JSON.parse(json).meta || null;
         }
       }catch{}
+
       const localSnap = collectLocalSnapshot();
       const dtR = remoteMeta?.updatedAt || 0, dtL = localSnap.meta.updatedAt;
 
@@ -329,6 +345,7 @@ function applyLocalSnapshot(snap) {
         await restoreLatest(); isSyncing=false; setChip('ok','Up to date'); return;
       }
 
+      // Upload current + rolling backup (keep last 5)
       const json = JSON.stringify(localSnap, null, 2);
       const body = await maybeEncrypt(json, passI?.value || '');
       await createOrUpdate('current.json', new Uint8Array(body.body), body.mime);
@@ -336,7 +353,6 @@ function applyLocalSnapshot(snap) {
       const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\..+/,''); // 20250130T112233
       await createOrUpdate(`backup-${stamp}.json`, new Uint8Array(body.body), body.mime);
 
-      // prune to last 5
       try {
         const all = await listBackups(100);
         const extra = (all||[]).slice(5);
@@ -357,10 +373,10 @@ function applyLocalSnapshot(snap) {
   let debounceTimer=null;
   function scheduleAutosync(){
     if (queued) return;
+    if (!shouldSync()) return;          // gate on deliveries
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(()=>{ syncNow().catch(()=>{}); }, 5000);
   }
-  // observe localStorage writes (no behavior change)
   (function patchLocalStorage(){
     const s = window.localStorage; if (!s) return;
     const _set=s.setItem.bind(s), _rem=s.removeItem.bind(s), _clr=s.clear?.bind(s)||(()=>{});
@@ -374,12 +390,11 @@ function applyLocalSnapshot(snap) {
   document.addEventListener('click',(e)=>{ if (!menu.contains(e.target) && !btn.contains(e.target)) showMenu(false); });
   document.addEventListener('keydown',(e)=>{ if (e.key==='Escape') showMenu(false); });
 
-  // Delegated clicks inside the dropdown
   menu.addEventListener('click', async (e) => {
     const item = e.target.closest('.cloud-item');
     const action = item?.getAttribute('data-action');
     try {
-      if (action==='signin')  { await ensureToken(true); /* keep menu open to show "Signed" */ refreshMenuState(); return; }
+      if (action==='signin')  { await ensureToken(true); refreshMenuState(); return; }
       if (action==='signout') { revokeToken(); showMenu(false); return; }
       if (action==='sync')    { await syncNow(); showMenu(false); return; }
       if (action==='restore') {
@@ -390,11 +405,11 @@ function applyLocalSnapshot(snap) {
         return;
       }
       if (action==='view') {
-        // Fetch and render inline list (keep menu OPEN)
+        // Inline list (keep menu OPEN)
         backupsPanel.classList.remove('hidden');
         backupsPanel.innerHTML = `
           <div class="px-2 py-1 text-xs text-neutral-500 dark:text-neutral-400">Backups (latest first)</div>
-          <div id="cloudBackupsList" class="max-h-56 overflow-auto divide-y divide-neutral-200 dark:divide-neutral-700"></div>
+          <div id="cloudBackupsList" class="cloud-b-list divide-y divide-neutral-200 dark:divide-neutral-700"></div>
         `;
         const listEl = backupsPanel.querySelector('#cloudBackupsList');
         listEl.innerHTML = '<div class="p-2 text-sm">Loading…</div>';
@@ -406,12 +421,12 @@ function applyLocalSnapshot(snap) {
             listEl.innerHTML = list.map(f => {
               const when = new Date(f.modifiedTime).toLocaleString();
               return `
-                <div class="p-2 flex items-center justify-between gap-2">
-                  <div class="text-sm">
-                    <div class="font-medium">${f.name}</div>
-                    <div class="text-xs text-neutral-500">${when}</div>
+                <div class="cloud-b-item">
+                  <div class="min-w-0">
+                    <div class="cloud-b-name" title="${f.name}">${f.name}</div>
+                    <div class="cloud-b-time">${when}</div>
                   </div>
-                  <button class="px-2 py-1 rounded-md border text-xs restore-one" data-id="${f.id}">
+                  <button class="cloud-b-restore restore-one" data-id="${f.id}">
                     <i class="fa-solid fa-rotate" aria-hidden="true"></i> Restore
                   </button>
                 </div>`;
@@ -437,8 +452,8 @@ function applyLocalSnapshot(snap) {
   });
 
   // ====== network events ======
-  window.addEventListener('online', ()=>{ if (queued) syncNow().catch(()=>{}); });
-  window.addEventListener('focus',  ()=>{ syncNow().catch(()=>{}); });
+  window.addEventListener('online', ()=>{ if (queued && shouldSync()) syncNow().catch(()=>{}); });
+  window.addEventListener('focus',  ()=>{ if (shouldSync())          syncNow().catch(()=>{}); });
 
   // ====== expose API (optional) ======
   window.GDSync = { signIn:()=>ensureToken(true), signOut: revokeToken, isSignedIn:()=>!!accessToken, syncNow, restoreLatest, listBackups };
@@ -451,9 +466,8 @@ function applyLocalSnapshot(snap) {
       else setChip('muted','Needs sign-in');
     } catch { setChip('muted','Needs sign-in'); }
     refreshMenuState();
-    // gentle initial sync (no prompt)
-    syncNow().catch(()=>{ /* ignore */ });
-    // first-load toast
+    // Initial sync only if there are deliveries
+    if (shouldSync()) { syncNow().catch(()=>{}); }
     try {
       if (!localStorage.getItem(FIRSTLOAD)) { showToast?.('Sign in to enable automatic backups.','warning'); localStorage.setItem(FIRSTLOAD,'1'); }
     } catch {}
