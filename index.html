@@ -18,95 +18,100 @@
 
 <body class="min-h-screen bg-neutral-50 text-neutral-900">
     <div class="mx-auto max-w-6xl p-4 md:p-8 space-y-6">
-        <!-- Header with dark mode toggle and nav tabs -->
-        <header class="flex items-center justify-between gap-4">
-            <!-- Logo and title -->
-            <div class="flex items-center gap-3">
-                <div
-                    class="h-9 w-9 rounded-2xl bg-gradient-to-br...ald-400 to-blue-500 shadow-sm flex items-center justify-center">
-                    <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"
-                        fill="currentColor" aria-hidden="true">
-                        <path
-                            d="M416 0C400 0 288 32 288 176V288c0...c-5.4 0-9.8-4.4-9.8-9.8V16zm48.3 152l-.3 0-.3 0 .3-.7 .3 .7z" />
-                    </svg>
-                </div>
-                <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Bakery Delivery Tracker</h1>
-            </div>
-
-            <!-- Right side controls -->
-            <div class="flex items-center gap-2">
-                <!-- existing dark mode toggle (unchanged) -->
-                <button id="darkToggle" class="no-print relative flex items-center" aria-label="Toggle dark mode">
-                    <span id="sunIcon" class="icon sun-icon">
-                        <svg class="w-full h-full fill-current" aria-hidden="true" viewBox="0 0 512 512">
-                            <path
-                                d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 10.7-1.6 15.2L446.9 256l62.3 90.3c3.1 4.5 3.7 10.2 1.6 15.2s-6.6 8.6-11.9 9.6L391 391 371.1 498.9c-1 5.3-4.6 9.8-9.6 11.9s-10.7 1.5-15.2-1.6L256 446.9l-90.3 62.3c-4.5 3.1-10.2 3.7-15.2 1.6s-8.6-6.6-9.6-11.9L121 391 13.1 371.1c-5.3-1-9.8-4.6-11.9-9.6s-1.5-10.7 1.6-15.2L65.1 256 2.8 165.7c-3.1-4.5-3.7-10.2-1.6-15.2s6.6-8.6 11.9-9.6L121 121 140.9 13.1c1-5.3 4.6-9.8 9.6-11.9s10.7-1.5 15.2 1.6L256 65.1 346.3 2.8c4.5-3.1 10.2-3.7 15.2-1.6zM160 256a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zm224 0a128 128 0 1 0 -256 0 128 128 0 1 0 256 0z" />
+        <!-- Unified top navigation bar -->
+        <header class="no-print">
+            <nav class="flex items-center justify-between gap-2 flex-wrap">
+                <!-- Left: logo -->
+                <div class="flex items-center gap-2">
+                    <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 shadow-sm flex items-center justify-center">
+                        <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" aria-hidden="true">
+                            <path d="M416 0C400 0 288 32 288 176V288c0 5.3 2.7 10.3 7.1 13.3L352 336l0 64c0 8.8 7.2 16 16 16s16-7.2 16-16l0-64 56.9-34.7c4.4-2.7 7.1-7.7 7.1-13.3V176C448 32 336 0 320 0s-16 32-16 176V512c0 17.7 14.3 32 32 32s32-14.3 32-32V160c0-70.7 57.3-128 128-128V0z" />
                         </svg>
-                    </span>
-                    <span id="moonIcon" class="icon moon-icon">
-                        <svg class="w-full h-full fill-current" aria-hidden="true" viewBox="0 0 384 512">
-                            <path
-                                d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z" />
-                        </svg>
-                    </span>
-                    <div id="darkKnob" class="knob"></div>
-                </button>
-
-                <!-- NEW: Cloud Sync button + dropdown menu -->
-                <div class="relative no-print">
-                    <!-- Cloud Sync button — OneDrive-style (icon-only + overlay badge, no caret) -->
-                    <button id="cloudSyncBtn" class="btn cloud-btn" aria-haspopup="true" aria-expanded="false"
-                        aria-label="Cloud Sync">
-                        <i id="cloudMainIcon" class="fa-solid fa-cloud" aria-hidden="true"></i>
-
-                        <!-- Overlay badge (check / sync / pause / minus / x) -->
-                        <span id="cloudStatusBadge" class="cloud-badge" aria-hidden="true">
-                            <i id="cloudBadgeIcon" class="fa-solid fa-check"></i>
-                        </span>
-
-                        <!-- Screen-reader live region for status announcements -->
-                        <span id="cloudStatusChip" class="sr-only" aria-live="polite">Up to date</span>
-                    </button>
-
-
-
-                    <div id="cloudSyncMenu"
-                        class="cloud-menu hidden absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-900 border dark:border-neutral-700 rounded-lg shadow-lg p-2 z-40"
-                        role="menu" aria-label="Cloud sync menu">
-                        <button class="cloud-item" data-action="signin" role="menuitem"><i
-                                class="fa-solid fa-right-to-bracket w-4 text-center"></i> Sign in</button>
-                        <button class="cloud-item" data-action="sync" role="menuitem"><i
-                                class="fa-solid fa-rotate w-4 text-center"></i> Sync now</button>
-                        <button class="cloud-item" data-action="restore" role="menuitem"><i
-                                class="fa-solid fa-cloud-arrow-down w-4 text-center"></i> Restore from cloud</button>
-                        <button class="cloud-item" data-action="view" role="menuitem"><i
-                                class="fa-solid fa-database w-4 text-center"></i> View backups</button>
-                        <div class="h-px my-1 bg-neutral-200 dark:bg-neutral-700"></div>
-                        <label class="block text-xs px-2 pt-1 pb-2 text-neutral-500 dark:text-neutral-400">Backup
-                            passphrase (optional)</label>
-                        <input id="cloudPassphrase" type="password"
-                            class="w-full px-2 py-1 rounded-md border text-sm dark:bg-neutral-900 dark:border-neutral-700"
-                            placeholder="Encrypt backups with AES-GCM" aria-label="Backup passphrase" />
-                        <div class="h-px my-2 bg-neutral-200 dark:bg-neutral-700"></div>
-                        <button class="cloud-item" data-action="signout" role="menuitem"><i
-                                class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sign out</button>
                     </div>
                 </div>
+
+                <!-- Search input -->
+                <div id="searchContainer" class="hidden md:block flex-1 md:max-w-xs">
+                    <input id="searchInput" type="text" placeholder="Search..." aria-label="Search"
+                        class="w-full rounded-full border px-3 py-1 transition-base focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-neutral-900 dark:border-neutral-700" />
+                </div>
+
+                <!-- Tabs -->
+                <div class="hidden md:flex items-center gap-2">
+                    <button id="navDelivery" class="px-3 py-1 rounded-md border text-sm transition-base bg-neutral-200 text-neutral-900">
+                        <i class="fa-solid fa-truck mr-1"></i><span class="hidden sm:inline">Deliveries</span>
+                    </button>
+                    <button id="navPurchases" class="px-3 py-1 rounded-md border text-sm transition-base">
+                        <i class="fa-solid fa-list mr-1"></i><span class="hidden sm:inline">Purchases Log</span>
+                    </button>
+                </div>
+
+                <!-- Action buttons (desktop/medium) -->
+                <div class="hidden md:flex items-center gap-2">
+                    <button id="navExportCsv" class="px-2 py-1 rounded-md border text-sm flex items-center gap-1"><i class="fa-solid fa-file-csv"></i><span class="hidden lg:inline">CSV</span></button>
+                    <button id="navExportExcel" class="px-2 py-1 rounded-md border text-sm flex items-center gap-1"><i class="fa-solid fa-file-excel"></i><span class="hidden lg:inline">Excel</span></button>
+                    <button id="navImport" class="px-2 py-1 rounded-md border text-sm flex items-center gap-1"><i class="fa-solid fa-file-import"></i><span class="hidden lg:inline">Import</span></button>
+                    <button id="navSave" class="px-2 py-1 rounded-md border text-sm flex items-center gap-1"><i class="fa-solid fa-floppy-disk"></i><span class="hidden lg:inline">Saves</span></button>
+                    <button id="navPrint" class="px-2 py-1 rounded-md border text-sm flex items-center gap-1"><i class="fa-solid fa-print"></i><span class="hidden lg:inline">Print</span></button>
+                    <button id="navClear" class="px-2 py-1 rounded-md border text-sm text-red-600 flex items-center gap-1"><i class="fa-solid fa-trash"></i><span class="hidden lg:inline">Clear</span></button>
+                </div>
+
+                <!-- Right side: dark mode, cloud sync, hamburger -->
+                <div class="flex items-center gap-2">
+                    <button id="darkToggle" class="no-print relative flex items-center" aria-label="Toggle dark mode">
+                        <span id="sunIcon" class="icon sun-icon">
+                            <svg class="w-full h-full fill-current" aria-hidden="true" viewBox="0 0 512 512">
+                                <path d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 10.7-1.6 15.2L446.9 256l62.3 90.3c3.1 4.5 3.7 10.2 1.6 15.2s-6.6 8.6-11.9 9.6L391 391 371.1 498.9c-1 5.3-4.6 9.8-9.6 11.9s-10.7 1.5-15.2-1.6L256 446.9l-90.3 62.3c-4.5 3.1-10.2 3.7-15.2 1.6s-8.6-6.6-9.6-11.9L121 391 13.1 371.1c-5.3-1-9.8-4.6-11.9-9.6s-1.5-10.7 1.6-15.2L65.1 256 2.8 165.7c-3.1-4.5-3.7-10.2-1.6-15.2s6.6-8.6 11.9-9.6L121 121 140.9 13.1c1-5.3 4.6-9.8 9.6-11.9s10.7-1.5 15.2 1.6L256 65.1 346.3 2.8c4.5-3.1 10.2-3.7 15.2-1.6zM160 256a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zm224 0a128 128 0 1 0 -256 0 128 128 0 1 0 256 0z" />
+                            </svg>
+                        </span>
+                        <span id="moonIcon" class="icon moon-icon">
+                            <svg class="w-full h-full fill-current" aria-hidden="true" viewBox="0 0 384 512">
+                                <path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.53.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z" />
+                            </svg>
+                        </span>
+                        <div id="darkKnob" class="knob"></div>
+                    </button>
+
+                    <div class="relative no-print">
+                        <button id="cloudSyncBtn" class="btn cloud-btn" aria-haspopup="true" aria-expanded="false" aria-label="Cloud Sync">
+                            <i id="cloudMainIcon" class="fa-solid fa-cloud" aria-hidden="true"></i>
+                            <span id="cloudStatusBadge" class="cloud-badge" aria-hidden="true"><i id="cloudBadgeIcon" class="fa-solid fa-check"></i></span>
+                            <span id="cloudStatusChip" class="sr-only" aria-live="polite">Up to date</span>
+                        </button>
+                        <div id="cloudSyncMenu" class="cloud-menu hidden absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-900 border dark:border-neutral-700 rounded-lg shadow-lg p-2 z-40" role="menu" aria-label="Cloud sync menu">
+                            <button class="cloud-item" data-action="signin" role="menuitem"><i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Sign in</button>
+                            <button class="cloud-item" data-action="sync" role="menuitem"><i class="fa-solid fa-rotate w-4 text-center"></i> Sync now</button>
+                            <button class="cloud-item" data-action="restore" role="menuitem"><i class="fa-solid fa-cloud-arrow-down w-4 text-center"></i> Restore from cloud</button>
+                            <button class="cloud-item" data-action="view" role="menuitem"><i class="fa-solid fa-database w-4 text-center"></i> View backups</button>
+                            <div class="h-px my-1 bg-neutral-200 dark:bg-neutral-700"></div>
+                            <label class="block text-xs px-2 pt-1 pb-2 text-neutral-500 dark:text-neutral-400">Backup passphrase (optional)</label>
+                            <input id="cloudPassphrase" type="password" class="w-full px-2 py-1 rounded-md border text-sm dark:bg-neutral-900 dark:border-neutral-700" placeholder="Encrypt backups with AES-GCM" aria-label="Backup passphrase" />
+                            <div class="h-px my-2 bg-neutral-200 dark:bg-neutral-700"></div>
+                            <button class="cloud-item" data-action="signout" role="menuitem"><i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sign out</button>
+                        </div>
+                    </div>
+
+                    <button id="hamburgerBtn" class="md:hidden p-2" aria-label="Menu" aria-controls="mobileMenu" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+                </div>
+            </nav>
+
+            <div id="mobileMenu" class="md:hidden hidden mt-2 border rounded-lg p-2 space-y-1 bg-white dark:bg-neutral-800">
+                <input id="mobileSearchInput" type="text" placeholder="Search..." aria-label="Search" class="w-full rounded-md border px-3 py-1 mb-2 dark:bg-neutral-900 dark:border-neutral-700" />
+                <button data-menu="delivery" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-truck"></i><span>Deliveries</span></button>
+                <button data-menu="purchases" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-list"></i><span>Purchases Log</span></button>
+                <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+                <button data-action="exportCsv" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-file-csv"></i><span>Export CSV</span></button>
+                <button data-action="exportExcel" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-file-excel"></i><span>Export Excel</span></button>
+                <button data-action="import" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-file-import"></i><span>Import</span></button>
+                <button data-action="save" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-floppy-disk"></i><span>Saves</span></button>
+                <button data-action="print" class="w-full text-left px-2 py-1 rounded-md border flex items-center gap-2"><i class="fa-solid fa-print"></i><span>Print</span></button>
+                <button data-action="clear" class="w-full text-left px-2 py-1 rounded-md border text-red-600 flex items-center gap-2"><i class="fa-solid fa-trash"></i><span>Clear</span></button>
             </div>
         </header>
 
         <!-- Shop filters container; populated via script when there are shops -->
         <!-- Removed shop tabs: hide container via hidden class to avoid showing outdated UI -->
         <div id="shopFilters" class="no-print mt-4 flex flex-wrap gap-2 hidden"></div>
-
-        <!-- Navigation tabs for section switching -->
-        <div id="navTabs" class="no-print mt-4 flex flex-wrap gap-2">
-            <button id="navDelivery"
-                class="px-3 py-1 rounded-md border text-sm transition-base bg-neutral-200 text-neutral-900 hover:bg-neutral-50">Delivery
-                Tracking</button>
-            <button id="navPurchases"
-                class="px-3 py-1 rounded-md border text-sm transition-base hover:bg-neutral-50">Purchases Log</button>
-        </div>
 
         <!-- Delivery Section -->
         <div id="deliverySection" class="space-y-6">
@@ -410,7 +415,7 @@
                             <option value="">All Shops</option>
                         </select>
                     </div>
-                    <div class="flex gap-2 no-print">
+                    <div class="flex gap-2 no-print hidden">
                         <button id="exportCsvBtn"
                             class="rounded-xl border px-3 py-2 hover:bg-neutral-50 transition-base flex items-center gap-1">
                             <svg class="w-4 h-4 fill-current" aria-hidden="true" viewBox="0 0 512 512">
@@ -470,11 +475,6 @@
                         </button>
                     </div>
                 </div>
-                <!-- Global search input for filtering deliveries -->
-                <div class="px-5 pb-3 no-print">
-                    <input id="searchInput" type="text" placeholder="Search deliveries..."
-                        class="w-full md:w-80 rounded-xl border px-3 py-2 transition-base focus-visible:ring-2 focus-visible:ring-emerald-400"
-                        aria-label="Search deliveries" />
                 </div>
                 <div class="p-5 overflow-x-auto">
                     <table class="w-full text-sm table-striped">
@@ -583,7 +583,7 @@
             <section class="bg-white border rounded-2xl shadow-sm transition-base hover:shadow-md">
                 <div class="flex flex-wrap items-center justify-between px-5 pt-5 gap-3 no-print">
                     <h2 class="text-lg font-medium">Purchases</h2>
-                    <div class="flex gap-2 no-print">
+                    <div class="flex gap-2 no-print hidden">
                         <!-- Export CSV -->
                         <button id="exportPurchasesCsvBtn"
                             class="rounded-xl border px-3 py-2 hover:bg-neutral-50 transition-base flex items-center gap-1">
