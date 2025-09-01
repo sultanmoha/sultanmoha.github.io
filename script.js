@@ -2865,13 +2865,13 @@ const searchActivator = document.getElementById('searchActivator');
 const searchDropdown = document.getElementById('searchDropdown');
 function closeMobileMenu() {
     if (!mobileMenu || !hamburgerBtn) return;
-    mobileMenu.classList.add('hidden');
+    mobileMenu.classList.add('d-none');
     hamburgerBtn.setAttribute('aria-expanded', 'false');
     if (hamburgerIcon) { hamburgerIcon.classList.remove('fa-xmark'); hamburgerIcon.classList.add('fa-bars'); }
 }
 function openMobileMenu() {
     if (!mobileMenu || !hamburgerBtn) return;
-    mobileMenu.classList.remove('hidden');
+    mobileMenu.classList.remove('d-none');
     hamburgerBtn.setAttribute('aria-expanded', 'true');
     if (hamburgerIcon) { hamburgerIcon.classList.remove('fa-bars'); hamburgerIcon.classList.add('fa-xmark'); }
     // Focus first item
@@ -2885,7 +2885,7 @@ if (hamburgerBtn && mobileMenu) {
     });
     // Close on outside click
     document.addEventListener('click', (e) => {
-        if (!mobileMenu || mobileMenu.classList.contains('hidden')) return;
+        if (!mobileMenu || mobileMenu.classList.contains('d-none')) return;
         if (hamburgerBtn.contains(e.target) || mobileMenu.contains(e.target)) return;
         closeMobileMenu();
     });
@@ -2898,7 +2898,7 @@ if (hamburgerBtn && mobileMenu) {
 // Medium search pill → toggles dropdown; always visible inline on lg+
 function openSearchDropdown() {
     if (!searchDropdown) return;
-    searchDropdown.classList.remove('hidden');
+    searchDropdown.classList.remove('d-none');
     if (searchActivator) searchActivator.setAttribute('aria-expanded', 'true');
     const input = document.getElementById('searchInput');
     if (input && window.innerWidth < 1024) setTimeout(() => input.focus(), 10);
@@ -2907,18 +2907,18 @@ function closeSearchDropdown() {
     if (!searchDropdown) return;
     // Only close when < lg; on large, dropdown is always visible
     if (window.innerWidth >= 1024) return;
-    searchDropdown.classList.add('hidden');
+    searchDropdown.classList.add('d-none');
     if (searchActivator) searchActivator.setAttribute('aria-expanded', 'false');
 }
 if (searchActivator && searchDropdown) {
     searchActivator.addEventListener('click', () => {
         if (window.innerWidth >= 1024) return; // no-op on large
-        const isOpen = !searchDropdown.classList.contains('hidden');
+        const isOpen = !searchDropdown.classList.contains('d-none');
         if (isOpen) closeSearchDropdown(); else openSearchDropdown();
     });
     document.addEventListener('click', (e) => {
         if (window.innerWidth >= 1024) return;
-        if (searchDropdown.classList.contains('hidden')) return;
+        if (searchDropdown.classList.contains('d-none')) return;
         if ((searchActivator && searchActivator.contains(e.target)) || searchDropdown.contains(e.target)) return;
         closeSearchDropdown();
     });
@@ -2929,17 +2929,17 @@ if (searchActivator && searchDropdown) {
     window.addEventListener('resize', () => {
         if (!searchDropdown) return;
         if (window.innerWidth >= 1024) {
-            searchDropdown.classList.remove('hidden');
+            searchDropdown.classList.remove('d-none');
             if (searchActivator) searchActivator.setAttribute('aria-expanded', 'false');
         } else {
-            searchDropdown.classList.add('hidden');
+            searchDropdown.classList.add('d-none');
         }
     });
     // Initial state based on width
     if (window.innerWidth >= 1024) {
-        searchDropdown.classList.remove('hidden');
+        searchDropdown.classList.remove('d-none');
     } else {
-        searchDropdown.classList.add('hidden');
+        searchDropdown.classList.add('d-none');
     }
 }
 
