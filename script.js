@@ -1019,6 +1019,7 @@ let sortField = null;
 let sortAsc = true;
 // Current text search filter; empty string means no filter.
 let searchQuery = '';
+let currentSection = 'deliverySection';
 
 // Chart instances (initialized lazily on first render)
 let deliveriesChart = null;
@@ -1126,6 +1127,7 @@ const previewProfitEl = $('previewProfit');
 const sumProfit = $('sumProfit');
 // Search input for filtering deliveries
 const searchInput = $('searchInput');
+const mobileSearchInput = $('mobileSearchInput');
 // Element for item breakdown (formerly catBreakdown)
 const itemBreakdown = $('itemBreakdown');
 
@@ -1588,6 +1590,7 @@ function exportPurchasesExcel() {
  * @param {string} sectionId Section id to show.
  */
 function showSection(sectionId) {
+    currentSection = sectionId;
     // Toggle visibility of the two main sections (delivery and purchases)
     const delivery = document.getElementById('deliverySection');
     const purchasesSec = document.getElementById('purchasesSection');
@@ -2390,6 +2393,14 @@ document.getElementById('addBtn').addEventListener('click', () => {
 if (searchInput) {
     searchInput.addEventListener('input', (ev) => {
         searchQuery = ev.target.value || '';
+        if (mobileSearchInput) mobileSearchInput.value = searchQuery;
+        render();
+    });
+}
+if (mobileSearchInput) {
+    mobileSearchInput.addEventListener('input', (ev) => {
+        searchQuery = ev.target.value || '';
+        if (searchInput) searchInput.value = searchQuery;
         render();
     });
 }
@@ -5316,3 +5327,53 @@ window.addEventListener('beforeprint', updatePrintSummaryAndBreakdown);
     };
 })();
 
+// --- Navbar action routing ---
+(function navbarRouting() {
+    const actions = {
+        exportCsv: () => currentSection === 'purchasesSection' ? exportPurchasesCsv() : exportCsv(),
+        exportExcel: () => currentSection === 'purchasesSection' ? exportPurchasesExcel() : exportExcel(),
+        import: () => {
+            if (currentSection === 'purchasesSection') {
+                const btn = document.getElementById('importPurchasesBtn');
+                if (btn) btn.click();
+            } else {
+                const btn = document.getElementById('importBtn');
+                if (btn) btn.click();
+            }
+        },
+        save: () => {
+            const btn = currentSection === 'purchasesSection' ? document.getElementById('savePurchasesBtn') : document.getElementById('saveBtn');
+            if (btn) btn.click();
+        },
+        print: () => {
+            const btn = currentSection === 'purchasesSection' ? document.getElementById('printPurchasesBtn') : document.getElementById('printBtn');
+            if (btn) btn.click();
+        },
+        clear: () => {
+            const btn = currentSection === 'purchasesSection' ? document.getElementById('clearPurchasesBtn') : document.getElementById('clearBtn');
+            if (btn) btn.click();
+        }
+    };
+    [['navExportCsv','exportCsv'],['navExportExcel','exportExcel'],['navImport','import'],['navSave','save'],['navPrint','print'],['navClear','clear']].forEach(([id,act])=>{
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('click', actions[act]);
+    });
+    const mobileMenu = document.getElementById('mobileMenu');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    if(hamburgerBtn && mobileMenu){
+        const closeMenu = ()=>{ mobileMenu.classList.add('hidden'); hamburgerBtn.setAttribute('aria-expanded','false'); };
+        hamburgerBtn.addEventListener('click', ()=>{
+            const hidden = mobileMenu.classList.toggle('hidden');
+            hamburgerBtn.setAttribute('aria-expanded', hidden ? 'false':'true');
+            if(!hidden){
+                if (mobileSearchInput) mobileSearchInput.value = searchQuery;
+                const first = mobileMenu.querySelector('input,button');
+                if(first) first.focus();
+            }
+        });
+        document.addEventListener('click',(e)=>{ if(!mobileMenu.classList.contains('hidden') && !mobileMenu.contains(e.target) && !hamburgerBtn.contains(e.target)) closeMenu(); });
+        document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeMenu(); });
+        mobileMenu.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',()=>{ actions[btn.dataset.action](); closeMenu(); }));
+        mobileMenu.querySelectorAll('[data-menu]').forEach(btn=>btn.addEventListener('click',()=>{ showSection(btn.dataset.menu==='purchases'?'purchasesSection':'deliverySection'); closeMenu(); }));
+    }
+})();
